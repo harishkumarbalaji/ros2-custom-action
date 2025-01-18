@@ -1,3 +1,5 @@
 build/
 install/
 log/
+src/mission_processor/mission_processor/__pycache__
+.vscode/
