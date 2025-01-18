@@ -1,62 +1,94 @@
 # ROS2 Mission Control System
 
 ## Introduction
-This repository demonstrates how to integrate a Python REST API with ROS2 nodes for mission control operations. It consists of a REST API for managing mission data and two ROS2 nodes: a client node for fetching and processing mission data, and a server node for executing missions.
+This repository demonstrates how to integrate a Python REST API with ROS2 nodes for mission control operations(an example of ROS2 Action Server). It consists of a **REST API** for managing mission data and two ROS2 nodes: a client node for fetching and processing mission data, and a server node for executing missions.
 
-It also provides an example of accessing the ROS2 Action Server using a Websocket server to get the data outside the ROS2 environment.
+It also provides an example of accessing the ROS2 Action using a **Websocket server** to get the data outside the ROS2 environment.
 
 Overall, the project is containerized and made easy to deploy using Docker.
 
 ## Setup Instructions
-
+### Prerequisites
+Make sure you have **ROS2** and **Docker** installed on your system.
 ### Clone the Repository
 1. Clone the Repository:
    ```bash
-   git clone https://github.com/yourusername/mission_control_system.git
-   cd mission_control_system
+   git clone https://github.com/harishkumarbalaji/ros2-custom-action.git
+   cd ros2-custom-action
    ```
 
-2. Install Dependencies:
+2. Install ROS Dependencies:
    ```bash
-   pip install -r requirements.txt
+   rosdep update
+   rosdep install -y --from-path src --ignore-src
    ```
 
-3. Set Up ROS2 Workspace:
+3. Set Up ROS2 Workspace(Replace `ROS_DISTRO` with your ROS2 distribution) in `build.sh`:
    ```bash
-   source /opt/ros/foxy/setup.bash
-   colcon build --symlink-install
-   source install/setup.bash
+   bash build.sh
    ```
+It will build the ROS2 workspace and create a Docker image with humble-ros-core as the base image and install the required dependencies.
 
 ## Run Instructions
 
-### Running the REST API
-1. Navigate to the API Directory:
+### Run the Servers( Rest API, ROS2 Action Server, Websocket server)
+In one terminal, bring up all the servers by running,
    ```bash
-   cd api
+   bash run_server.sh
    ```
 
-2. Start the Flask Server:
-   ```bash
-   python app.py
-   ```
-   The API will be running on [http://localhost:5000](http://localhost:5000).
+The REST API server will run on port `5000` and the websocket server will run on port `9090`.
 
-### Running the ROS2 Nodes
-1. Open a New Terminal:
+### Run the Action Client
+Once the servers are running, you can run the action client using in another terminal by running,
    ```bash
-   source install/setup.bash
+   bash run_client.sh
    ```
 
-2. Run the Mission Client Node:
-   ```bash
-   ros2 run your_package_name mission_client_node
-   ```
+Once the action client is running, you can see the `/get_action` action is being called and you can see the feedback being published in the server terminal.
 
-3. Run the Mission Server Node:
+you can send a mission using the POST `/mission` endpoint and retrieve the result using the GET `/mission` endpoint.
+
+Once the new mission is sent, the ROS2 Action Server will process the mission data and the client will receive the the updated mission data.
+
+## API Interaction
+
+### REST
+1. Update the mission data using the POST `/mission` endpoint.
    ```bash
-   ros2 run your_package_name mission_server_node
+   curl -X POST -H "Content-Type: application/json" -d '{"id": 0, "description": "Go to Rack 9"}' http://127.0.0.1:5000/update_mission
+
    ```
+2. Retrieve the latest mission data using the GET `/mission` endpoint.
+   
+   ```bash
+   curl -X GET http://127.0.0.1:5000/get_mission
+   ```
+### Websocket
+The docker entry point script includes running the ros websocket server which is this awesome ros package [rosbridge_suite](https://wiki.ros.org/rosbridge_suite).
+
+You can use the following commands to connect to the websocket server and trigger the action in ros2 environment and receive the feedback.
+
+> Note: You can use any websocket client to connect to the server. For example, we are going to use `websocat` which is a cargo package.
+> Install Rust and Cargo using the instructions [here](https://www.rust-lang.org/tools/install). or simple run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
+```bash
+ websocat -t ws://127.0.0.1:9090
+```
+
+Now, once the client is connected(you can check the client connection logs in the server terminal), you can send the action using the following command. (just copy and paste the json below)
+
+```
+{ "op": "send_action_goal",
+  "action": "get_mission",
+  "action_type": "mission_action_interfaces/action/Mission",
+ "feedback": true
+}
+```
+
+You can see the feedback being published in the server terminal and also it is being received through the websocket server.
+
+There are more features available in the websocket server like subscribing to topics, sending messages, etc. You can find the documentation [here](https://github.com/RobotWebTools/rosbridge_suite).
 
 ## System Overview
 
@@ -91,27 +123,8 @@ string result
 int32 countdown
 ```
 
-## Deployment with Docker
-To deploy the system using Docker, follow these steps:
-
-1. Build the Docker Image:
-   ```bash
-   docker build -t mission_control_system .
-   ```
-
-2. Run the Docker Container:
-   ```bash
-   docker run -it --name mission_control -p 5000:5000 mission_control_system
-   ```
-
 ## Extra Functionality
 - **Custom ROS Messages:** Defined a custom action message for mission data.
 - **Real-time Data Processing:** Mission Client Node polls the API every second for real-time data.
 - **Action Feedback:** Mission Server Node provides feedback during mission execution.
-
-## Contributing
-We welcome contributions! If you find issues or have suggestions, please open an issue or submit a pull request.
-
-## License
-This project is licensed under the MIT License. See the LICENSE file for details.
-
+- **Websocket Server:** Runs a ROS2 WebSocket Server to receive and send actions in a ROS2 environment.
