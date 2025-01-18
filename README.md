@@ -23,7 +23,7 @@ Make sure you have **ROS2** and **Docker** installed on your system.
    rosdep install -y --from-path src --ignore-src
    ```
 
-3. Set Up ROS2 Workspace(Replace `ROS_DISTRO` with your ROS2 distribution) in `build.sh`:
+3. Build the Docker image (Replace `ROS_DISTRO` with your ROS2 distribution) in `build.sh`:
    ```bash
    bash build.sh
    ```
@@ -71,6 +71,12 @@ You can use the following commands to connect to the websocket server and trigge
 
 > Note: You can use any websocket client to connect to the server. For example, we are going to use `websocat` which is a cargo package.
 > Install Rust and Cargo using the instructions [here](https://www.rust-lang.org/tools/install). or simple run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
+Install the `websocat` application using,
+```bash
+cargo install websocat
+```
+Once the `websocat` is installed, connect to the websocker server using,
 
 ```bash
  websocat -t ws://127.0.0.1:9090
